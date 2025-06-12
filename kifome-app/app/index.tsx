@@ -12,35 +12,35 @@ export default function Home() {
       <View style={styles.buttonContainer}>
         <TouchableOpacity
           style={styles.button}
-          onPress={() => router.push('/sugestao')}
+          onPress={() => router.push('/tudo/sugestao')}
         >
           <Text style={styles.buttonText}>Sugestão Rápida</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.button}
-          onPress={() => router.push('/planejamento')}
+          onPress={() => router.push('/tudo/planejamento')}
         >
           <Text style={styles.buttonText}>Planejamento Semanal</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.button}
-          onPress={() => router.push('/lista-compras')}
+          onPress={() => router.push('/tudo/lista-compras')}
         >
           <Text style={styles.buttonText}>Lista de Compras</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.button}
-          onPress={() => router.push('/voz')}
+          onPress={() => router.push('/tudo/voz')}
         >
           <Text style={styles.buttonText}>Modo de Voz</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.button}
-          onPress={() => router.push('/perfil')}
+          onPress={() => router.push('/tudo/perfil')}
         >
           <Text style={styles.buttonText}>Meu Perfil</Text>
         </TouchableOpacity>

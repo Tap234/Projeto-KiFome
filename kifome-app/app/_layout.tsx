@@ -54,7 +54,7 @@ export default function Layout() {
           router.replace('/');
         } else if (!isAuthenticated && !inPublicRoute) {
           console.log('🔄 Usuário não autenticado em rota privada, redirecionando para login...');
-          router.replace('/login');
+          router.replace('/tudo/login');
         }
       } catch (error) {
         console.error('❌ Erro na navegação:', error);

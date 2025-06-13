@@ -36,8 +36,8 @@ export default function Layout() {
   useEffect(() => {
     if (isLoading) return;
 
-    const inPublicRoute = segments[0] && publicRoutes.includes(segments[0]);
-    console.log('🔒 Status de autenticação:', { isAuthenticated, inPublicRoute, currentRoute: segments[0] });
+    const inPublicRoute = segments[1] && publicRoutes.includes(segments[1]);
+    console.log('🔒 Status de autenticação:', { isAuthenticated, inPublicRoute, currentRoute: segments[1] });
 
     const handleNavigation = async () => {
       try {
@@ -51,7 +51,7 @@ export default function Layout() {
 
         if (isAuthenticated && inPublicRoute) {
           console.log('🔄 Usuário autenticado em rota pública, redirecionando para home...');
-          router.replace('/');
+          router.replace('/tudo');
         } else if (!isAuthenticated && !inPublicRoute) {
           console.log('🔄 Usuário não autenticado em rota privada, redirecionando para login...');
           router.replace('/tudo/login');

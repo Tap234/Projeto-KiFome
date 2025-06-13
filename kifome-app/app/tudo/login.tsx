@@ -65,7 +65,7 @@ export default function Login() {
         // Depois redirecionar para home com um pequeno delay
         setTimeout(() => {
           console.log('🔄 Redirecionando para home...');
-          router.replace('/');
+          router.replace('/tudo');
         }, 500);
       } catch (storageError) {
         console.error('❌ Erro ao salvar no AsyncStorage:', storageError);
@@ -99,7 +99,9 @@ export default function Login() {
       setLoading(false);
     }
   };
-
+  const handleSignUp = () => {
+    router.push('/tudo/signup');
+  };
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Login</Text>
@@ -145,7 +147,7 @@ export default function Login() {
 
       <TouchableOpacity
         style={styles.linkButton}
-        onPress={() => router.push('/tudo/signup')}
+        onPress={handleSignUp}
         disabled={loading}
       >
         <Text style={styles.linkText}>Não tem uma conta? Cadastre-se</Text>

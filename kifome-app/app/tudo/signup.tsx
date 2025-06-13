@@ -55,7 +55,7 @@ export default function SignUp() {
       Alert.alert('Sucesso', 'Cadastro realizado com sucesso!', [
         {
           text: 'OK',
-          onPress: () => router.replace('/'),
+          onPress: () => router.replace('/tudo'),
         },
       ]);
     } catch (error) {

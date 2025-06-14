@@ -6,7 +6,7 @@ import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 
 // Lista de rotas que não precisam de autenticação
-const publicRoutes = ['login', 'signup'];
+const publicRoutes = ['tudo/login', 'tudo/signup'];
 
 // Função global para verificar autenticação
 export const checkAuthStatus = async () => {
@@ -36,8 +36,9 @@ export default function Layout() {
   useEffect(() => {
     if (isLoading) return;
 
-    const inPublicRoute = segments[1] && publicRoutes.includes(segments[1]);
-    console.log('🔒 Status de autenticação:', { isAuthenticated, inPublicRoute, currentRoute: segments[1] });
+    const currentPath = segments.join('/');
+    const inPublicRoute = publicRoutes.some(route => currentPath.startsWith(route));
+    console.log('🔒 Status de autenticação:', { isAuthenticated, inPublicRoute, currentPath });
 
     const handleNavigation = async () => {
       try {
@@ -49,10 +50,15 @@ export default function Layout() {
           return;
         }
 
+        // Se estiver na rota raiz (/), não redireciona
+        if (currentPath === '') {
+          return;
+        }
+
         if (isAuthenticated && inPublicRoute) {
           console.log('🔄 Usuário autenticado em rota pública, redirecionando para home...');
-          router.replace('/tudo');
-        } else if (!isAuthenticated && !inPublicRoute) {
+          router.replace('/');
+        } else if (!isAuthenticated && !inPublicRoute && currentPath !== '') {
           console.log('🔄 Usuário não autenticado em rota privada, redirecionando para login...');
           router.replace('/tudo/login');
         }
@@ -109,58 +115,9 @@ export default function Layout() {
           }}
         />
         <Stack.Screen
-          name="login"
+          name="tudo"
           options={{
-            title: 'Login',
-            headerBackVisible: false,
-          }}
-        />
-        <Stack.Screen
-          name="signup"
-          options={{
-            title: 'Cadastro',
-          }}
-        />
-        <Stack.Screen
-          name="sugestao"
-          options={{
-            title: 'Sugestão Rápida',
-            headerBackVisible: false,
-          }}
-        />
-        <Stack.Screen
-          name="planejamento"
-          options={{
-            title: 'Planejamento Semanal',
-            headerBackVisible: false,
-          }}
-        />
-        <Stack.Screen
-          name="passoapasso"
-          options={{
-            title: 'Modo Preparo',
-            headerBackVisible: false,
-          }}
-        />
-        <Stack.Screen
-          name="perfil"
-          options={{
-            title: 'Meu Perfil',
-            headerBackVisible: false,
-          }}
-        />
-        <Stack.Screen
-          name="lista-compras"
-          options={{
-            title: 'Lista de Compras',
-            headerBackVisible: false,
-          }}
-        />
-        <Stack.Screen
-          name="voz"
-          options={{
-            title: 'Assistente de Voz',
-            headerBackVisible: false,
+            headerShown: false,
           }}
         />
       </Stack>

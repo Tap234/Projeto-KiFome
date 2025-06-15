@@ -1,6 +1,8 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import ShoppingListService from '../../services/ShoppingListService';
+import { Recipe, ShoppingList } from '../../types/user';
 
 // Define the type for a single step
 interface Step {
@@ -10,61 +12,58 @@ interface Step {
 
 export default function PassoAPasso() {
   const router = useRouter();
-  const { passos } = useLocalSearchParams();
+  const params = useLocalSearchParams();
+  const [recipe, setRecipe] = useState<Recipe | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
   const [steps, setSteps] = useState<Step[]>([]);
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const [timerActive, setTimerActive] = useState(false);
   const [intervalId, setIntervalId] = useState<ReturnType<typeof setInterval> | null>(null);
 
-  // Parse the steps from the route params
+  // Parse the recipe and steps from the route params
   useEffect(() => {
-    if (passos) {
-      try {
-        // Parse the JSON string into an array
-        const passosArray = JSON.parse(passos as string);
-        
-        // Validate that passosArray is actually an array
-        if (!Array.isArray(passosArray)) {
-          throw new Error('Passos deve ser um array');
+    try {
+      if (!params.recipe) {
+        throw new Error('Nenhuma receita foi fornecida');
+      }
+
+      // Parse the recipe from params
+      const recipeData = JSON.parse(params.recipe as string) as Recipe;
+      setRecipe(recipeData);
+
+      if (!Array.isArray(recipeData.passos)) {
+        throw new Error('A receita não contém passos válidos');
+      }
+
+      // Map the steps to the correct format
+      const validatedSteps = recipeData.passos.map(step => {
+        // If step is a string (from Gemini API)
+        if (typeof step === 'string') {
+          // Extract time if mentioned in the step (e.g., "Cozinhe por 5 minutos")
+          const timeMatch = step.match(/(\d+)\s*minutos?/i);
+          return {
+            texto: step,
+            tempo: timeMatch ? Number(timeMatch[1]) : null
+          };
         }
 
-        // Map the steps to the correct format
-        const validatedSteps = passosArray.map(step => {
-          // If step is already an object with texto and tempo
-          if (typeof step === 'object' && step !== null && 'texto' in step) {
-            return {
-              texto: String(step.texto),
-              tempo: step.tempo !== undefined && step.tempo !== null ? Number(step.tempo) : null
-            };
-          }
-          
-          // If step is a string (from Gemini API)
-          if (typeof step === 'string') {
-            // Extract time if mentioned in the step (e.g., "Cozinhe por 5 minutos")
-            const timeMatch = step.match(/(\d+)\s*minutos?/i);
-            return {
-              texto: step,
-              tempo: timeMatch ? Number(timeMatch[1]) : null
-            };
-          }
+        // Fallback for any other case
+        return {
+          texto: String(step),
+          tempo: null
+        };
+      });
 
-          // Fallback for any other case
-          return {
-            texto: String(step),
-            tempo: null
-          };
-        });
-
-        setSteps(validatedSteps);
-      } catch (error) {
-        console.error('Erro ao processar os passos:', error);
-        router.back();
-      }
-    } else {
-      router.back();
+      setSteps(validatedSteps);
+    } catch (error) {
+      console.error('Erro ao processar a receita:', error);
+      Alert.alert(
+        'Erro',
+        'Não foi possível carregar a receita. Voltando para a tela anterior.',
+        [{ text: 'OK', onPress: () => router.back() }]
+      );
     }
-  }, [passos]);
+  }, [params.recipe]);
 
   // Clean up timer on unmount
   useEffect(() => {
@@ -130,7 +129,39 @@ export default function PassoAPasso() {
     }
   };
 
-  if (steps.length === 0) {
+  // Função para gerar lista de compras da receita
+  const generateShoppingList = async () => {
+    if (!recipe) return;
+
+    try {
+      // Cria itens da lista de compras a partir dos ingredientes
+      const items = recipe.ingredientes.map(ingrediente => ({
+        id: ShoppingListService.generateListId(),
+        name: ingrediente.split(' ')[0], // Pega o nome do ingrediente
+        quantity: ingrediente.split(' ').slice(1).join(' '), // Pega a quantidade
+        checked: false,
+        recipeTitle: recipe.titulo
+      }));
+
+      // Cria a nova lista de compras
+      const newList: ShoppingList = {
+        id: ShoppingListService.generateListId(),
+        title: `Lista para ${recipe.titulo}`,
+        type: 'single',
+        items,
+        createdAt: Date.now()
+      };
+
+      // Salva a lista
+      await ShoppingListService.saveSingleList(newList);
+      Alert.alert('Sucesso', 'Lista de compras gerada com sucesso!');
+    } catch (error) {
+      console.error('Erro ao gerar lista de compras:', error);
+      Alert.alert('Erro', 'Não foi possível gerar a lista de compras.');
+    }
+  };
+
+  if (!recipe || steps.length === 0) {
     return null;
   }
 
@@ -140,7 +171,26 @@ export default function PassoAPasso() {
   return (
     <ScrollView style={styles.scrollView}>
       <View style={styles.container}>
-        <Text style={styles.title}>Modo de Preparo</Text>
+        <Text style={styles.title}>{recipe.titulo}</Text>
+        
+        <View style={styles.recipeInfo}>
+          <Text style={styles.prepTime}>Tempo de Preparo: {recipe.tempoPreparo}</Text>
+          <Text style={styles.description}>{recipe.descricao}</Text>
+        </View>
+
+        <View style={styles.ingredientsContainer}>
+          <Text style={styles.sectionTitle}>Ingredientes:</Text>
+          {recipe.ingredientes.map((ingrediente, index) => (
+            <Text key={index} style={styles.ingredientText}>• {ingrediente}</Text>
+          ))}
+          
+          <TouchableOpacity
+            style={styles.listButton}
+            onPress={generateShoppingList}
+          >
+            <Text style={styles.buttonText}>Gerar Lista de Compras</Text>
+          </TouchableOpacity>
+        </View>
         
         <View style={styles.progressContainer}>
           <Text style={styles.progressText}>
@@ -215,12 +265,42 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 30,
     color: '#f4511e',
+    marginBottom: 15,
     textAlign: 'center',
   },
-  progressContainer: {
+  recipeInfo: {
     marginBottom: 20,
+  },
+  prepTime: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 5,
+  },
+  description: {
+    fontSize: 14,
+    color: '#333',
+    fontStyle: 'italic',
+  },
+  ingredientsContainer: {
+    backgroundColor: '#f8f8f8',
+    borderRadius: 10,
+    padding: 15,
+    marginBottom: 20,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 10,
+  },
+  ingredientText: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 5,
+  },
+  progressContainer: {
+    marginBottom: 15,
   },
   progressText: {
     fontSize: 16,
@@ -246,47 +326,54 @@ const styles = StyleSheet.create({
     color: '#333',
     lineHeight: 24,
   },
+  timerContainer: {
+    marginTop: 15,
+    alignItems: 'center',
+  },
+  timerText: {
+    fontSize: 18,
+    color: '#f4511e',
+    fontWeight: 'bold',
+  },
+  timerButton: {
+    backgroundColor: '#f4511e20',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+  },
+  timerButtonText: {
+    color: '#f4511e',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
   navigationButtons: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginTop: 20,
   },
   button: {
+    flex: 1,
     backgroundColor: '#f4511e',
     padding: 15,
     borderRadius: 10,
-    flex: 1,
     marginHorizontal: 5,
   },
   navigationButton: {
     alignItems: 'center',
+  },
+  disabledButton: {
+    backgroundColor: '#ccc',
   },
   buttonText: {
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
   },
-  disabledButton: {
-    backgroundColor: '#ccc',
-  },
-  timerContainer: {
-    marginTop: 15,
-    alignItems: 'center',
-  },
-  timerButton: {
-    backgroundColor: '#4CAF50',
-    padding: 10,
+  listButton: {
+    backgroundColor: '#f4511e',
+    padding: 12,
     borderRadius: 8,
-    marginTop: 10,
-  },
-  timerButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  timerText: {
-    fontSize: 18,
-    color: '#f4511e',
-    fontWeight: 'bold',
+    marginTop: 16,
+    alignItems: 'center',
   },
 });

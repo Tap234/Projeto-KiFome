@@ -36,4 +36,29 @@ export interface WeeklyPlan {
     sabado: DayMeals;
     domingo: DayMeals;
   };
+}
+
+/**
+ * Representa um item em uma lista de compras
+ */
+export interface ShoppingItem {
+  id: string;
+  name: string;
+  quantity: string;
+  checked: boolean;
+  recipeId?: string;  // ID da receita de origem (opcional)
+  recipeTitle?: string;  // Título da receita de origem (opcional)
+}
+
+/**
+ * Representa uma lista de compras completa
+ */
+export interface ShoppingList {
+  id: string;
+  title: string;
+  type: 'weekly' | 'single';  // weekly para semanal, single para receita única
+  items: ShoppingItem[];
+  createdAt: number;
+  weekId?: string;  // ID da semana do planejamento (apenas para type='weekly')
+  recipeId?: string;  // ID da receita (apenas para type='single')
 } 

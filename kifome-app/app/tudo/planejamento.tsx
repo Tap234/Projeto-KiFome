@@ -63,6 +63,43 @@ export default function Planejamento() {
       return;
     }
 
+    // Validação dos campos numéricos
+    if (!preferences.mealPreferences.peopleCount) {
+      Alert.alert(
+        'Configuração Incompleta',
+        'Por favor, especifique o número de pessoas nas configurações do perfil.',
+        [
+          {
+            text: 'Ir para Configurações',
+            onPress: () => router.push('/tudo/perfil')
+          },
+          {
+            text: 'Cancelar',
+            style: 'cancel'
+          }
+        ]
+      );
+      return;
+    }
+
+    if (!preferences.averagePreparationTime) {
+      Alert.alert(
+        'Configuração Incompleta',
+        'Por favor, especifique o tempo médio de preparo nas configurações do perfil.',
+        [
+          {
+            text: 'Ir para Configurações',
+            onPress: () => router.push('/tudo/perfil')
+          },
+          {
+            text: 'Cancelar',
+            style: 'cancel'
+          }
+        ]
+      );
+      return;
+    }
+
     setLoading(true);
     try {
       // Lista de restrições para o prompt
@@ -137,7 +174,7 @@ export default function Planejamento() {
 
         {weeklyPlan?.semana ? (
           Object.entries(DAYS).map(([key, dayName]) => {
-            const day = weeklyPlan.semana[key as keyof WeeklyPlan];
+            const day = weeklyPlan.semana[key as keyof typeof weeklyPlan.semana];
             if (!day) return null;
 
             return (

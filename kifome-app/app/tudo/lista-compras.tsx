@@ -1,143 +1,191 @@
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import {
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+} from 'react-native';
+import ShoppingListService from '../../services/ShoppingListService';
+import { ShoppingList } from '../../types/user';
+import ShoppingListComponent from '../components/ShoppingListComponent';
 
 export default function ListaCompras() {
   const router = useRouter();
-  const [items, setItems] = useState([
-    { id: 1, name: 'Macarrão', quantity: '500g', checked: false },
-    { id: 2, name: 'Carne Moída', quantity: '400g', checked: false },
-    { id: 3, name: 'Molho de Tomate', quantity: '2 latas', checked: false },
-    { id: 4, name: 'Cebola', quantity: '1 unidade', checked: false },
-    { id: 5, name: 'Alho', quantity: '2 dentes', checked: false },
-    { id: 6, name: 'Sal', quantity: 'a gosto', checked: false },
-    { id: 7, name: 'Pimenta', quantity: 'a gosto', checked: false },
-  ]);
+  const [weeklyList, setWeeklyList] = useState<ShoppingList | null>(null);
+  const [singleLists, setSingleLists] = useState<ShoppingList[]>([]);
+  const [activeList, setActiveList] = useState<'weekly' | 'single'>('weekly');
 
-  const toggleItem = (id: number) => {
-    setItems(items.map(item =>
-      item.id === id ? { ...item, checked: !item.checked } : item
-    ));
+  // Carrega as listas ao iniciar
+  useEffect(() => {
+    loadLists();
+  }, []);
+
+  // Carrega todas as listas
+  const loadLists = async () => {
+    try {
+      const weekly = await ShoppingListService.getWeeklyList();
+      const single = await ShoppingListService.getAllSingleLists();
+      
+      setWeeklyList(weekly);
+      setSingleLists(single);
+    } catch (error) {
+      console.error('Erro ao carregar listas:', error);
+    }
+  };
+
+  // Alterna o estado de um item
+  const handleItemToggle = async (listType: 'weekly' | 'single', listId: string, itemId: string) => {
+    try {
+      if (listType === 'weekly' && weeklyList) {
+        const updatedList = {
+          ...weeklyList,
+          items: weeklyList.items.map(item =>
+            item.id === itemId ? { ...item, checked: !item.checked } : item
+          ),
+        };
+        await ShoppingListService.saveWeeklyList(updatedList);
+        setWeeklyList(updatedList);
+      } else {
+        const targetList = singleLists.find(list => list.id === listId);
+        if (targetList) {
+          const updatedList = {
+            ...targetList,
+            items: targetList.items.map(item =>
+              item.id === itemId ? { ...item, checked: !item.checked } : item
+            ),
+          };
+          await ShoppingListService.saveSingleList(updatedList);
+          setSingleLists(prev =>
+            prev.map(list => list.id === listId ? updatedList : list)
+          );
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao atualizar item:', error);
+    }
+  };
+
+  // Remove uma lista avulsa
+  const handleDeleteList = async (listId: string) => {
+    try {
+      await ShoppingListService.deleteSingleList(listId);
+      setSingleLists(prev => prev.filter(list => list.id !== listId));
+    } catch (error) {
+      console.error('Erro ao deletar lista:', error);
+    }
   };
 
   return (
-    <ScrollView style={styles.scrollView}>
-      <View style={styles.container}>
-        <Text style={styles.title}>Lista de Compras</Text>
-
-        <View style={styles.listContainer}>
-          {items.map(item => (
-            <TouchableOpacity
-              key={item.id}
-              style={[styles.itemCard, item.checked && styles.checkedItem]}
-              onPress={() => toggleItem(item.id)}
-            >
-              <View style={styles.checkbox}>
-                {item.checked && <View style={styles.checked} />}
-              </View>
-              <View style={styles.itemInfo}>
-                <Text style={[styles.itemName, item.checked && styles.checkedText]}>
-                  {item.name}
-                </Text>
-                <Text style={[styles.itemQuantity, item.checked && styles.checkedText]}>
-                  {item.quantity}
-                </Text>
-              </View>
-            </TouchableOpacity>
-          ))}
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.title}>Listas de Compras</Text>
+        <View style={styles.tabs}>
+          <TouchableOpacity
+            style={[styles.tab, activeList === 'weekly' && styles.activeTab]}
+            onPress={() => setActiveList('weekly')}
+          >
+            <Text style={[
+              styles.tabText,
+              activeList === 'weekly' && styles.activeTabText
+            ]}>
+              Lista Semanal
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tab, activeList === 'single' && styles.activeTab]}
+            onPress={() => setActiveList('single')}
+          >
+            <Text style={[
+              styles.tabText,
+              activeList === 'single' && styles.activeTabText
+            ]}>
+              Listas Avulsas
+            </Text>
+          </TouchableOpacity>
         </View>
-
-        <TouchableOpacity
-          style={styles.button}
-          onPress={() => {/* Implementar compartilhamento */}}
-        >
-          <Text style={styles.buttonText}>Compartilhar Lista</Text>
-        </TouchableOpacity>
       </View>
-    </ScrollView>
+
+      {activeList === 'weekly' ? (
+        weeklyList ? (
+          <ShoppingListComponent
+            list={weeklyList}
+            onItemToggle={(itemId) => handleItemToggle('weekly', weeklyList.id, itemId)}
+          />
+        ) : (
+          <Text style={styles.emptyText}>
+            Nenhuma lista semanal disponível.{'\n'}
+            Gere um planejamento semanal primeiro!
+          </Text>
+        )
+      ) : (
+        <ScrollView>
+          {singleLists.length > 0 ? (
+            singleLists.map(list => (
+              <ShoppingListComponent
+                key={list.id}
+                list={list}
+                onItemToggle={(itemId) => handleItemToggle('single', list.id, itemId)}
+                onDeleteList={() => handleDeleteList(list.id)}
+              />
+            ))
+          ) : (
+            <Text style={styles.emptyText}>
+              Nenhuma lista avulsa disponível.{'\n'}
+              Gere uma lista a partir de uma receita!
+            </Text>
+          )}
+        </ScrollView>
+      )}
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  scrollView: {
+  container: {
     flex: 1,
     backgroundColor: '#fff',
   },
-  container: {
-    flex: 1,
-    padding: 20,
+  header: {
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
   },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 30,
     color: '#f4511e',
+    marginBottom: 16,
     textAlign: 'center',
   },
-  listContainer: {
-    marginBottom: 20,
-  },
-  itemCard: {
+  tabs: {
     flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    padding: 15,
-    marginBottom: 10,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.2,
-    shadowRadius: 1.41,
+    marginTop: 8,
   },
-  checkedItem: {
-    backgroundColor: '#f5f5f5',
-  },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: '#f4511e',
-    marginRight: 15,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  checked: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: '#f4511e',
-  },
-  itemInfo: {
+  tab: {
     flex: 1,
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
   },
-  itemName: {
+  activeTab: {
+    borderBottomColor: '#f4511e',
+  },
+  tabText: {
     fontSize: 16,
-    fontWeight: '500',
-    color: '#333',
-    marginBottom: 4,
-  },
-  itemQuantity: {
-    fontSize: 14,
     color: '#666',
   },
-  checkedText: {
-    textDecorationLine: 'line-through',
-    color: '#999',
-  },
-  button: {
-    backgroundColor: '#f4511e',
-    padding: 15,
-    borderRadius: 10,
-    alignItems: 'center',
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
+  activeTabText: {
+    color: '#f4511e',
     fontWeight: 'bold',
+  },
+  emptyText: {
+    textAlign: 'center',
+    marginTop: 40,
+    color: '#666',
+    fontStyle: 'italic',
+    lineHeight: 24,
   },
 });

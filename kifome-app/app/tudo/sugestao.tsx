@@ -151,7 +151,7 @@ export default function Sugestao() {
                   style={[styles.button, styles.verReceitaButton]}
                   onPress={() => router.push({
                     pathname: '/tudo/passoapasso',
-                    params: { passos: JSON.stringify(item.passos) }
+                    params: { recipe: JSON.stringify(item) }
                   })}
                 >
                   <Text style={styles.buttonText}>Ver Receita Completa</Text>

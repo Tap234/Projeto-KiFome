@@ -25,6 +25,10 @@ export default function Perfil() {
     darkMode: false,
   });
 
+  // Estados locais para os campos numéricos
+  const [peopleCountText, setPeopleCountText] = useState(preferences.mealPreferences.peopleCount.toString());
+  const [prepTimeText, setPrepTimeText] = useState(preferences.averagePreparationTime.toString());
+
   useEffect(() => {
     loadPreferences();
   }, []);
@@ -33,7 +37,10 @@ export default function Perfil() {
     try {
       const savedPrefs = await AsyncStorage.getItem(STORAGE_KEY);
       if (savedPrefs) {
-        setPreferences(JSON.parse(savedPrefs));
+        const prefs = JSON.parse(savedPrefs);
+        setPreferences(prefs);
+        setPeopleCountText(prefs.mealPreferences.peopleCount.toString());
+        setPrepTimeText(prefs.averagePreparationTime.toString());
       }
     } catch (error) {
       console.error('❌ Erro ao carregar preferências:', error);
@@ -47,6 +54,39 @@ export default function Perfil() {
     } catch (error) {
       console.error('❌ Erro ao salvar preferências:', error);
       Alert.alert('Erro', 'Não foi possível salvar suas preferências.');
+    }
+  };
+
+  const handlePeopleCountChange = (text: string) => {
+    // Remove caracteres não numéricos
+    const cleanText = text.replace(/[^0-9]/g, '');
+    setPeopleCountText(cleanText);
+
+    // Atualiza as preferências apenas se houver um número válido
+    if (cleanText) {
+      const count = parseInt(cleanText);
+      savePreferences({
+        ...preferences,
+        mealPreferences: {
+          ...preferences.mealPreferences,
+          peopleCount: count,
+        }
+      });
+    }
+  };
+
+  const handlePrepTimeChange = (text: string) => {
+    // Remove caracteres não numéricos
+    const cleanText = text.replace(/[^0-9]/g, '');
+    setPrepTimeText(cleanText);
+
+    // Atualiza as preferências apenas se houver um número válido
+    if (cleanText) {
+      const time = parseInt(cleanText);
+      savePreferences({
+        ...preferences,
+        averagePreparationTime: time,
+      });
     }
   };
 
@@ -143,19 +183,12 @@ export default function Perfil() {
             <Text style={styles.preferenceText}>Número de Pessoas</Text>
             <TextInput
               style={styles.input}
-              value={preferences.mealPreferences.peopleCount.toString()}
-              onChangeText={(value) => {
-                const count = parseInt(value) || 1;
-                savePreferences({
-                  ...preferences,
-                  mealPreferences: {
-                    ...preferences.mealPreferences,
-                    peopleCount: count,
-                  }
-                });
-              }}
+              value={peopleCountText}
+              onChangeText={handlePeopleCountChange}
               keyboardType="numeric"
               maxLength={2}
+              placeholder="1"
+              placeholderTextColor="#999"
             />
           </View>
 
@@ -163,16 +196,12 @@ export default function Perfil() {
             <Text style={styles.preferenceText}>Tempo Médio de Preparo (min)</Text>
             <TextInput
               style={styles.input}
-              value={preferences.averagePreparationTime.toString()}
-              onChangeText={(value) => {
-                const time = parseInt(value) || 30;
-                savePreferences({
-                  ...preferences,
-                  averagePreparationTime: time,
-                });
-              }}
+              value={prepTimeText}
+              onChangeText={handlePrepTimeChange}
               keyboardType="numeric"
               maxLength={3}
+              placeholder="30"
+              placeholderTextColor="#999"
             />
           </View>
         </View>

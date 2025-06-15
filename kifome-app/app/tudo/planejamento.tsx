@@ -3,7 +3,8 @@ import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { generateWeeklyPlan as geminiGenerateWeeklyPlan } from '../../config/gemini';
-import { UserPreferences, WeeklyPlan } from '../../types/user';
+import ShoppingListService from '../../services/ShoppingListService';
+import { ShoppingList, UserPreferences, WeeklyPlan } from '../../types/user';
 
 const STORAGE_KEY = '@user_preferences';
 const WEEKLY_PLAN_KEY = '@weekly_plan';
@@ -117,7 +118,41 @@ export default function Planejamento() {
       );
 
       await savePlan(plan);
-      Alert.alert('Sucesso', 'Planejamento semanal gerado com sucesso!');
+
+      // Gerar e salvar nova lista de compras semanal
+      const allIngredients: string[] = [];
+      const days = ['segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado', 'domingo'];
+      
+      for (const day of days) {
+        const dayMeals = plan.semana[day];
+        if (dayMeals.almoco?.ingredientes) {
+          allIngredients.push(...dayMeals.almoco.ingredientes);
+        }
+        if (dayMeals.janta?.ingredientes) {
+          allIngredients.push(...dayMeals.janta.ingredientes);
+        }
+      }
+
+      const weeklyList: ShoppingList = {
+        id: ShoppingListService.generateListId(),
+        title: 'Lista de Compras Semanal',
+        type: 'weekly',
+        items: allIngredients.map(ingrediente => ({
+          id: ShoppingListService.generateListId(),
+          name: ingrediente.split(' ')[0],
+          quantity: ingrediente.split(' ').slice(1).join(' '),
+          checked: false
+        })),
+        createdAt: Date.now()
+      };
+
+      // Consolidar ingredientes repetidos
+      weeklyList.items = ShoppingListService.consolidateIngredients(weeklyList.items);
+
+      // Salvar a lista semanal
+      await ShoppingListService.saveWeeklyList(weeklyList);
+
+      Alert.alert('Sucesso', 'Planejamento semanal e lista de compras gerados com sucesso!');
     } catch (error) {
       console.error('❌ Erro ao gerar planejamento:', error);
       Alert.alert('Erro', 'Não foi possível gerar o planejamento. Tente novamente.');
@@ -208,9 +243,12 @@ export default function Planejamento() {
             style={styles.button}
             onPress={() => router.push('/tudo/lista-compras')}
           >
-            <Text style={styles.buttonText}>Gerar Lista de Compras</Text>
+            <Text style={styles.buttonText}>Ver Lista de Compras Semanal</Text>
           </TouchableOpacity>
         )}
+        <Text style={styles.note}>
+          A lista de compras semanal é persistente e será atualizada automaticamente ao gerar um novo planejamento.
+        </Text>
       </View>
     </ScrollView>
   );
@@ -317,5 +355,11 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     fontStyle: 'italic',
+  },
+  note: {
+    fontSize: 12,
+    color: '#666',
+    textAlign: 'center',
+    marginTop: 10,
   },
 });

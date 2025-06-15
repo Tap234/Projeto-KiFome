@@ -19,6 +19,7 @@ export interface Recipe {
   descricao: string;
   passos: string[];
   ingredientes: string[];
+  servings?: number;
 }
 
 export interface DayMeals {

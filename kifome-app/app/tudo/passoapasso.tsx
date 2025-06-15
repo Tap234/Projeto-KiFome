@@ -187,6 +187,9 @@ export default function PassoAPasso() {
         
         <View style={styles.recipeInfo}>
           <Text style={styles.prepTime}>Tempo de Preparo: {recipe.tempoPreparo}</Text>
+          {recipe.servings && (
+            <Text style={styles.prepTime}>Serve: {recipe.servings} {recipe.servings > 1 ? 'pessoas' : 'pessoa'}</Text>
+          )}
           <Text style={styles.description}>{recipe.descricao}</Text>
         </View>
 

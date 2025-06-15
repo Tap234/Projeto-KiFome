@@ -9,6 +9,7 @@ export interface QuickSuggestion {
   steps?: string[];
   timestamp: Date;
   checkedItems: { [key: string]: boolean };
+  servings: number;
 }
 
 class QuickSuggestionHistoryService {

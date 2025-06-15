@@ -30,6 +30,7 @@ export default function Sugestao() {
   const [ingrediente, setIngrediente] = useState('');
   const [listaIngredientes, setListaIngredientes] = useState<string[]>([]);
   const [tempo, setTempo] = useState('');
+  const [numeroPessoas, setNumeroPessoas] = useState('1');
   const [receitas, setReceitas] = useState<Receita[]>([]);
   const [loading, setLoading] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
@@ -78,10 +79,15 @@ export default function Sugestao() {
       return;
     }
 
+    if (!numeroPessoas || parseInt(numeroPessoas) <= 0) {
+      Alert.alert('Erro', 'Por favor, informe um número válido de pessoas!');
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const receitaGerada = await generateRecipe(listaIngredientes, parseInt(tempo), 1);
+      const receitaGerada = await generateRecipe(listaIngredientes, parseInt(tempo), parseInt(numeroPessoas));
       const novaReceita = {
         id: '1',
         ...receitaGerada
@@ -93,7 +99,8 @@ export default function Sugestao() {
         title: novaReceita.titulo,
         ingredients: novaReceita.ingredientes,
         steps: novaReceita.passos,
-        checkedItems: {}
+        checkedItems: {},
+        servings: parseInt(numeroPessoas) // Adicionando número de pessoas ao histórico
       });
 
       // Recarregar histórico
@@ -138,14 +145,14 @@ export default function Sugestao() {
 
       <Text style={styles.title}>Sugestão Rápida</Text>
       
+      <Text style={styles.subtitle}>Adicione os ingredientes disponíveis:</Text>
       <View style={styles.inputContainer}>
         <TextInput
           style={styles.input}
-          placeholder="Adicionar ingrediente"
+          placeholder="Digite um ingrediente"
           value={ingrediente}
           onChangeText={setIngrediente}
           onSubmitEditing={adicionarIngrediente}
-          returnKeyType="done"
         />
         <TouchableOpacity
           style={styles.addButton}
@@ -173,14 +180,24 @@ export default function Sugestao() {
       )}
 
       <View style={styles.timeContainer}>
-        <Text style={styles.subtitle}>Tempo Disponível:</Text>
+        <Text style={styles.subtitle}>Tempo máximo de preparo (minutos):</Text>
         <TextInput
           style={[styles.input, styles.timeInput]}
-          placeholder="Minutos"
+          placeholder="Ex: 30"
           value={tempo}
           onChangeText={setTempo}
           keyboardType="numeric"
-          returnKeyType="done"
+        />
+      </View>
+
+      <View style={styles.timeContainer}>
+        <Text style={styles.subtitle}>Quantas pessoas vão comer?</Text>
+        <TextInput
+          style={[styles.input, styles.timeInput]}
+          placeholder="Ex: 2"
+          value={numeroPessoas}
+          onChangeText={setNumeroPessoas}
+          keyboardType="numeric"
         />
       </View>
 
@@ -192,7 +209,7 @@ export default function Sugestao() {
         {loading ? (
           <ActivityIndicator color="#fff" />
         ) : (
-          <Text style={styles.buttonText}>Sugerir Receita</Text>
+          <Text style={styles.buttonText}>Gerar Sugestão</Text>
         )}
       </TouchableOpacity>
 
@@ -211,7 +228,12 @@ export default function Sugestao() {
                   style={[styles.button, styles.verReceitaButton]}
                   onPress={() => router.push({
                     pathname: '/tudo/passoapasso',
-                    params: { recipe: JSON.stringify(item) }
+                    params: {
+                      recipe: JSON.stringify({
+                        ...item,
+                        servings: parseInt(numeroPessoas)
+                      })
+                    }
                   })}
                 >
                   <Text style={styles.buttonText}>Ver Receita Completa</Text>

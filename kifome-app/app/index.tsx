@@ -26,13 +26,6 @@ export default function Home() {
 
         <TouchableOpacity
           style={styles.button}
-          onPress={() => router.push('/tudo/lista-compras')}
-        >
-          <Text style={styles.buttonText}>Lista de Compras</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.button}
           onPress={() => router.push('/tudo/voz')}
         >
           <Text style={styles.buttonText}>Modo de Voz</Text>

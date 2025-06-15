@@ -28,8 +28,9 @@ export default function ListaTemporaria() {
         <Text style={styles.title}>Lista de Compras</Text>
         <Text style={styles.subtitle}>{recipeTitle}</Text>
         <Text style={styles.note}>
-          Esta é uma lista temporária apenas para sua visualização.
-          Os itens marcados/desmarcados não serão salvos.
+          Esta é uma lista temporária apenas para sua visualização.{'\n'}
+          Os itens marcados/desmarcados não serão salvos.{'\n'}
+          Para lista permanente, use o Planejamento Semanal.
         </Text>
       </View>
 

@@ -168,6 +168,18 @@ export default function PassoAPasso() {
   const currentStepData = steps[currentStep];
   const isTimerStep = Boolean(currentStepData.tempo);
 
+  const handleGenerateShoppingList = () => {
+    if (!recipe.ingredientes) return;
+
+    router.push({
+      pathname: '/tudo/lista-temporaria',
+      params: {
+        ingredients: JSON.stringify(recipe.ingredientes),
+        title: recipe.titulo
+      }
+    });
+  };
+
   return (
     <ScrollView style={styles.scrollView}>
       <View style={styles.container}>
@@ -186,7 +198,7 @@ export default function PassoAPasso() {
           
           <TouchableOpacity
             style={styles.listButton}
-            onPress={generateShoppingList}
+            onPress={handleGenerateShoppingList}
           >
             <Text style={styles.buttonText}>Gerar Lista de Compras</Text>
           </TouchableOpacity>

@@ -107,6 +107,13 @@ export default function Sugestao() {
     }
   }
 
+  const navigateToHistory = () => {
+    router.push({
+      pathname: '/tudo/historico',
+      params: { suggestions: JSON.stringify(history) }
+    });
+  };
+
   return (
     <KeyboardAwareScrollView
       style={styles.container}
@@ -118,9 +125,14 @@ export default function Sugestao() {
       <View style={styles.headerButtons}>
         <TouchableOpacity
           style={styles.historyButton}
-          onPress={() => setShowHistory(true)}
+          onPress={navigateToHistory}
+          disabled={loadingHistory}
         >
-          <Text style={styles.historyButtonText}>Histórico</Text>
+          {loadingHistory ? (
+            <ActivityIndicator size="small" color="#f4511e" />
+          ) : (
+            <Text style={styles.historyButtonText}>Histórico</Text>
+          )}
         </TouchableOpacity>
       </View>
 
@@ -195,23 +207,15 @@ export default function Sugestao() {
               )}
               <Text style={styles.receitaText}>{item.descricao}</Text>
               {item.titulo !== 'Erro' && item.passos && (
-                <View style={styles.buttonGroup}>
-                  <TouchableOpacity
-                    style={[styles.button, styles.verReceitaButton]}
-                    onPress={() => router.push({
-                      pathname: '/tudo/passoapasso',
-                      params: { recipe: JSON.stringify(item) }
-                    })}
-                  >
-                    <Text style={styles.buttonText}>Ver Receita Completa</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.button, styles.shoppingListButton]}
-                    onPress={() => setShowShoppingList(true)}
-                  >
-                    <Text style={styles.buttonText}>Gerar Lista de Compras</Text>
-                  </TouchableOpacity>
-                </View>
+                <TouchableOpacity
+                  style={[styles.button, styles.verReceitaButton]}
+                  onPress={() => router.push({
+                    pathname: '/tudo/passoapasso',
+                    params: { recipe: JSON.stringify(item) }
+                  })}
+                >
+                  <Text style={styles.buttonText}>Ver Receita Completa</Text>
+                </TouchableOpacity>
               )}
             </View>
           ))}
@@ -388,15 +392,7 @@ const styles = StyleSheet.create({
     color: '#666',
     marginBottom: 15,
   },
-  buttonGroup: {
-    flexDirection: 'column',
-    gap: 10,
-  },
   verReceitaButton: {
-    marginBottom: 0,
-  },
-  shoppingListButton: {
-    backgroundColor: '#2ecc71',
     marginBottom: 0,
   },
   buttonDisabled: {

@@ -1,16 +1,54 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, Switch, Text, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { UserPreferences } from '../../types/user';
 import { checkAuthStatus } from '../_layout';
+
+const STORAGE_KEY = '@user_preferences';
 
 export default function Perfil() {
   const router = useRouter();
-  const [isVegetarian, setIsVegetarian] = React.useState(false);
-  const [isGlutenFree, setIsGlutenFree] = React.useState(false);
-  const [isLactoseFree, setIsLactoseFree] = React.useState(false);
-  const [darkMode, setDarkMode] = React.useState(false);
   const [loading, setLoading] = useState(false);
+  const [preferences, setPreferences] = useState<UserPreferences>({
+    mealPreferences: {
+      includeLunch: true,
+      includeDinner: true,
+      peopleCount: 1,
+    },
+    dietaryRestrictions: {
+      isVegetarian: false,
+      isGlutenFree: false,
+      isLactoseFree: false,
+    },
+    averagePreparationTime: 30,
+    darkMode: false,
+  });
+
+  useEffect(() => {
+    loadPreferences();
+  }, []);
+
+  const loadPreferences = async () => {
+    try {
+      const savedPrefs = await AsyncStorage.getItem(STORAGE_KEY);
+      if (savedPrefs) {
+        setPreferences(JSON.parse(savedPrefs));
+      }
+    } catch (error) {
+      console.error('❌ Erro ao carregar preferências:', error);
+    }
+  };
+
+  const savePreferences = async (newPrefs: UserPreferences) => {
+    try {
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(newPrefs));
+      setPreferences(newPrefs);
+    } catch (error) {
+      console.error('❌ Erro ao salvar preferências:', error);
+      Alert.alert('Erro', 'Não foi possível salvar suas preferências.');
+    }
+  };
 
   const handleLogout = async () => {
     try {
@@ -30,17 +68,14 @@ export default function Perfil() {
             style: 'destructive',
             onPress: async () => {
               try {
-                // Limpar todos os dados do AsyncStorage
                 await AsyncStorage.clear();
                 console.log('✅ Usuário deslogado com sucesso');
                 
-                // Verificar se realmente foi limpo
                 const isStillAuthenticated = await checkAuthStatus();
                 if (isStillAuthenticated) {
                   throw new Error('Falha ao remover dados do usuário');
                 }
 
-                // Redirecionar para login
                 console.log('🔄 Redirecionando para tela de login...');
                 router.replace('/tudo/login');
                 
@@ -70,35 +105,126 @@ export default function Perfil() {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Preferências Alimentares</Text>
+          <Text style={styles.sectionTitle}>Preferências de Refeição</Text>
+          
+          <View style={styles.preferenceItem}>
+            <Text style={styles.preferenceText}>Incluir Almoço</Text>
+            <Switch
+              value={preferences.mealPreferences.includeLunch}
+              onValueChange={(value) => savePreferences({
+                ...preferences,
+                mealPreferences: {
+                  ...preferences.mealPreferences,
+                  includeLunch: value,
+                }
+              })}
+              trackColor={{ false: '#767577', true: '#f4511e' }}
+              thumbColor={preferences.mealPreferences.includeLunch ? '#fff' : '#f4f3f4'}
+            />
+          </View>
+
+          <View style={styles.preferenceItem}>
+            <Text style={styles.preferenceText}>Incluir Janta</Text>
+            <Switch
+              value={preferences.mealPreferences.includeDinner}
+              onValueChange={(value) => savePreferences({
+                ...preferences,
+                mealPreferences: {
+                  ...preferences.mealPreferences,
+                  includeDinner: value,
+                }
+              })}
+              trackColor={{ false: '#767577', true: '#f4511e' }}
+              thumbColor={preferences.mealPreferences.includeDinner ? '#fff' : '#f4f3f4'}
+            />
+          </View>
+
+          <View style={styles.preferenceItem}>
+            <Text style={styles.preferenceText}>Número de Pessoas</Text>
+            <TextInput
+              style={styles.input}
+              value={preferences.mealPreferences.peopleCount.toString()}
+              onChangeText={(value) => {
+                const count = parseInt(value) || 1;
+                savePreferences({
+                  ...preferences,
+                  mealPreferences: {
+                    ...preferences.mealPreferences,
+                    peopleCount: count,
+                  }
+                });
+              }}
+              keyboardType="numeric"
+              maxLength={2}
+            />
+          </View>
+
+          <View style={styles.preferenceItem}>
+            <Text style={styles.preferenceText}>Tempo Médio de Preparo (min)</Text>
+            <TextInput
+              style={styles.input}
+              value={preferences.averagePreparationTime.toString()}
+              onChangeText={(value) => {
+                const time = parseInt(value) || 30;
+                savePreferences({
+                  ...preferences,
+                  averagePreparationTime: time,
+                });
+              }}
+              keyboardType="numeric"
+              maxLength={3}
+            />
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Restrições Alimentares</Text>
           
           <View style={styles.preferenceItem}>
             <Text style={styles.preferenceText}>Vegetariano</Text>
             <Switch
-              value={isVegetarian}
-              onValueChange={setIsVegetarian}
+              value={preferences.dietaryRestrictions.isVegetarian}
+              onValueChange={(value) => savePreferences({
+                ...preferences,
+                dietaryRestrictions: {
+                  ...preferences.dietaryRestrictions,
+                  isVegetarian: value,
+                }
+              })}
               trackColor={{ false: '#767577', true: '#f4511e' }}
-              thumbColor={isVegetarian ? '#fff' : '#f4f3f4'}
+              thumbColor={preferences.dietaryRestrictions.isVegetarian ? '#fff' : '#f4f3f4'}
             />
           </View>
 
           <View style={styles.preferenceItem}>
             <Text style={styles.preferenceText}>Sem Glúten</Text>
             <Switch
-              value={isGlutenFree}
-              onValueChange={setIsGlutenFree}
+              value={preferences.dietaryRestrictions.isGlutenFree}
+              onValueChange={(value) => savePreferences({
+                ...preferences,
+                dietaryRestrictions: {
+                  ...preferences.dietaryRestrictions,
+                  isGlutenFree: value,
+                }
+              })}
               trackColor={{ false: '#767577', true: '#f4511e' }}
-              thumbColor={isGlutenFree ? '#fff' : '#f4f3f4'}
+              thumbColor={preferences.dietaryRestrictions.isGlutenFree ? '#fff' : '#f4f3f4'}
             />
           </View>
 
           <View style={styles.preferenceItem}>
             <Text style={styles.preferenceText}>Sem Lactose</Text>
             <Switch
-              value={isLactoseFree}
-              onValueChange={setIsLactoseFree}
+              value={preferences.dietaryRestrictions.isLactoseFree}
+              onValueChange={(value) => savePreferences({
+                ...preferences,
+                dietaryRestrictions: {
+                  ...preferences.dietaryRestrictions,
+                  isLactoseFree: value,
+                }
+              })}
               trackColor={{ false: '#767577', true: '#f4511e' }}
-              thumbColor={isLactoseFree ? '#fff' : '#f4f3f4'}
+              thumbColor={preferences.dietaryRestrictions.isLactoseFree ? '#fff' : '#f4f3f4'}
             />
           </View>
         </View>
@@ -109,10 +235,13 @@ export default function Perfil() {
           <View style={styles.preferenceItem}>
             <Text style={styles.preferenceText}>Modo Escuro</Text>
             <Switch
-              value={darkMode}
-              onValueChange={setDarkMode}
+              value={preferences.darkMode}
+              onValueChange={(value) => savePreferences({
+                ...preferences,
+                darkMode: value,
+              })}
               trackColor={{ false: '#767577', true: '#f4511e' }}
-              thumbColor={darkMode ? '#fff' : '#f4f3f4'}
+              thumbColor={preferences.darkMode ? '#fff' : '#f4f3f4'}
             />
           </View>
         </View>
@@ -186,6 +315,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#666',
   },
+  input: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 5,
+    padding: 5,
+    width: 60,
+    textAlign: 'center',
+    color: '#666',
+  },
   button: {
     backgroundColor: '#f4511e',
     padding: 15,
@@ -202,7 +340,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   logoutButton: {
-    backgroundColor: '#ff4444',
-    marginTop: 30,
+    backgroundColor: '#f4511e',
   },
 });

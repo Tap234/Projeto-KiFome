@@ -1,8 +1,9 @@
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Modal,
   Platform,
   StyleSheet,
   Text,
@@ -12,6 +13,9 @@ import {
 } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { generateRecipe } from '../../config/gemini';
+import QuickSuggestionHistoryService, { QuickSuggestion } from '../../services/QuickSuggestionHistoryService';
+import QuickSuggestionHistory from '../components/QuickSuggestionHistory';
+import TemporaryShoppingList from '../components/TemporaryShoppingList';
 
 type Receita = {
   id: string;
@@ -28,6 +32,29 @@ export default function Sugestao() {
   const [tempo, setTempo] = useState('');
   const [receitas, setReceitas] = useState<Receita[]>([]);
   const [loading, setLoading] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const [showShoppingList, setShowShoppingList] = useState(false);
+  const [history, setHistory] = useState<QuickSuggestion[]>([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+
+  // Carregar histórico ao montar o componente
+  useEffect(() => {
+    loadHistory();
+  }, []);
+
+  const loadHistory = async () => {
+    try {
+      setLoadingHistory(true);
+      // TODO: Substituir '123' pelo userId real do usuário logado
+      const suggestions = await QuickSuggestionHistoryService.getHistory('123');
+      setHistory(suggestions);
+    } catch (error) {
+      console.error('Erro ao carregar histórico:', error);
+      Alert.alert('Erro', 'Não foi possível carregar o histórico de sugestões.');
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
 
   function adicionarIngrediente() {
     if (ingrediente.trim() !== '') {
@@ -54,11 +81,23 @@ export default function Sugestao() {
     setLoading(true);
 
     try {
-      const receitaGerada = await generateRecipe(listaIngredientes, parseInt(tempo));
-      setReceitas([{
+      const receitaGerada = await generateRecipe(listaIngredientes, parseInt(tempo), 1);
+      const novaReceita = {
         id: '1',
         ...receitaGerada
-      }]);
+      };
+      setReceitas([novaReceita]);
+
+      // Salvar no histórico
+      await QuickSuggestionHistoryService.addSuggestion('123', { // TODO: Substituir '123' pelo userId real
+        title: novaReceita.titulo,
+        ingredients: listaIngredientes,
+        steps: novaReceita.passos,
+        checkedItems: {}
+      });
+
+      // Recarregar histórico
+      await loadHistory();
     } catch (error) {
       console.error('Erro ao gerar receita:', error);
       Alert.alert('Erro', 'Não foi possível gerar a receita. Tente novamente.');
@@ -76,6 +115,15 @@ export default function Sugestao() {
       enableAutomaticScroll={Platform.OS === 'ios'}
       keyboardShouldPersistTaps="handled"
     >
+      <View style={styles.headerButtons}>
+        <TouchableOpacity
+          style={styles.historyButton}
+          onPress={() => setShowHistory(true)}
+        >
+          <Text style={styles.historyButtonText}>Histórico</Text>
+        </TouchableOpacity>
+      </View>
+
       <Text style={styles.title}>Sugestão Rápida</Text>
       
       <View style={styles.inputContainer}>
@@ -147,20 +195,66 @@ export default function Sugestao() {
               )}
               <Text style={styles.receitaText}>{item.descricao}</Text>
               {item.titulo !== 'Erro' && item.passos && (
-                <TouchableOpacity
-                  style={[styles.button, styles.verReceitaButton]}
-                  onPress={() => router.push({
-                    pathname: '/tudo/passoapasso',
-                    params: { recipe: JSON.stringify(item) }
-                  })}
-                >
-                  <Text style={styles.buttonText}>Ver Receita Completa</Text>
-                </TouchableOpacity>
+                <View style={styles.buttonGroup}>
+                  <TouchableOpacity
+                    style={[styles.button, styles.verReceitaButton]}
+                    onPress={() => router.push({
+                      pathname: '/tudo/passoapasso',
+                      params: { recipe: JSON.stringify(item) }
+                    })}
+                  >
+                    <Text style={styles.buttonText}>Ver Receita Completa</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.button, styles.shoppingListButton]}
+                    onPress={() => setShowShoppingList(true)}
+                  >
+                    <Text style={styles.buttonText}>Gerar Lista de Compras</Text>
+                  </TouchableOpacity>
+                </View>
               )}
             </View>
           ))}
         </>
       )}
+
+      {/* Modal do Histórico */}
+      <Modal
+        visible={showHistory}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowHistory(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            {loadingHistory ? (
+              <ActivityIndicator size="large" color="#f4511e" />
+            ) : (
+              <QuickSuggestionHistory
+                suggestions={history}
+                onClose={() => setShowHistory(false)}
+              />
+            )}
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal da Lista de Compras */}
+      <Modal
+        visible={showShoppingList}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowShoppingList(false)}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <TemporaryShoppingList
+              ingredients={listaIngredientes}
+              onClose={() => setShowShoppingList(false)}
+            />
+          </View>
+        </View>
+      </Modal>
     </KeyboardAwareScrollView>
   );
 }
@@ -172,6 +266,21 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     padding: 20,
+  },
+  headerButtons: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginBottom: 10,
+  },
+  historyButton: {
+    backgroundColor: '#f4511e20',
+    paddingHorizontal: 15,
+    paddingVertical: 8,
+    borderRadius: 20,
+  },
+  historyButtonText: {
+    color: '#f4511e',
+    fontWeight: 'bold',
   },
   title: {
     fontSize: 24,
@@ -279,11 +388,30 @@ const styles = StyleSheet.create({
     color: '#666',
     marginBottom: 15,
   },
+  buttonGroup: {
+    flexDirection: 'column',
+    gap: 10,
+  },
   verReceitaButton: {
-    marginTop: 10,
+    marginBottom: 0,
+  },
+  shoppingListButton: {
+    backgroundColor: '#2ecc71',
     marginBottom: 0,
   },
   buttonDisabled: {
     backgroundColor: '#ccc',
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    width: '90%',
+    backgroundColor: '#fff',
+    borderRadius: 15,
+    overflow: 'hidden',
   },
 });

@@ -91,7 +91,7 @@ export default function Sugestao() {
       // Salvar no histórico
       await QuickSuggestionHistoryService.addSuggestion('123', { // TODO: Substituir '123' pelo userId real
         title: novaReceita.titulo,
-        ingredients: listaIngredientes,
+        ingredients: novaReceita.ingredientes,
         steps: novaReceita.passos,
         checkedItems: {}
       });

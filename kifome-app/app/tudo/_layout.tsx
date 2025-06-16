@@ -53,13 +53,6 @@ export default function TudoLayout() {
         }}
       />
       <Stack.Screen
-        name="voz"
-        options={{
-          title: 'Modo de Voz',
-          headerTintColor: '#f4511e',
-        }}
-      />
-      <Stack.Screen
         name="perfil"
         options={{
           title: 'Meu Perfil',

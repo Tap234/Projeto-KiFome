@@ -6,7 +6,6 @@ export interface UserPreferences {
   };
   dietaryRestrictions: string;
   averagePreparationTime: number; // in minutes
-  darkMode: boolean;
 }
 
 export interface Recipe {

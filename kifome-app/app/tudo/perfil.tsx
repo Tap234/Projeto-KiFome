@@ -18,7 +18,6 @@ export default function Perfil() {
     },
     dietaryRestrictions: '',
     averagePreparationTime: 30,
-    darkMode: false,
   });
 
   // Estados locais para os campos
@@ -281,23 +280,6 @@ export default function Perfil() {
           ) : (
             <Text style={styles.emptyText}>Nenhuma restrição informada</Text>
           )}
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Configurações</Text>
-          
-          <View style={styles.preferenceItem}>
-            <Text style={styles.preferenceText}>Modo Escuro</Text>
-            <Switch
-              value={preferences.darkMode}
-              onValueChange={(value) => savePreferences({
-                ...preferences,
-                darkMode: value,
-              })}
-              trackColor={{ false: '#767577', true: '#f4511e' }}
-              thumbColor={preferences.darkMode ? '#fff' : '#f4f3f4'}
-            />
-          </View>
         </View>
 
         <TouchableOpacity

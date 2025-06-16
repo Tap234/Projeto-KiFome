@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { generateWeeklyPlan as geminiGenerateWeeklyPlan } from '../../config/gemini';
 import ShoppingListService from '../../services/ShoppingListService';
+import WeeklyPlanService from '../../services/WeeklyPlanService';
 import { ShoppingList, UserPreferences, WeeklyPlan } from '../../types/user';
 
 const STORAGE_KEY = '@user_preferences';
@@ -119,35 +120,21 @@ export default function Planejamento() {
 
       await savePlan(plan);
 
-      // Gerar e salvar nova lista de compras semanal
-      const allIngredients: string[] = [];
-      const days = ['segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado', 'domingo'];
-      
-      for (const day of days) {
-        const dayMeals = plan.semana[day];
-        if (dayMeals.almoco?.ingredientes) {
-          allIngredients.push(...dayMeals.almoco.ingredientes);
-        }
-        if (dayMeals.janta?.ingredientes) {
-          allIngredients.push(...dayMeals.janta.ingredientes);
-        }
-      }
+      // Processa e agrupa os ingredientes usando o novo serviço
+      const processedIngredients = WeeklyPlanService.processWeeklyIngredients(plan);
 
       const weeklyList: ShoppingList = {
         id: ShoppingListService.generateListId(),
         title: 'Lista de Compras Semanal',
         type: 'weekly',
-        items: allIngredients.map(ingrediente => ({
+        items: processedIngredients.map(ingrediente => ({
           id: ShoppingListService.generateListId(),
-          name: ingrediente.split(' ')[0],
-          quantity: ingrediente.split(' ').slice(1).join(' '),
+          name: ingrediente,
+          quantity: '',
           checked: false
         })),
         createdAt: Date.now()
       };
-
-      // Consolidar ingredientes repetidos
-      weeklyList.items = ShoppingListService.consolidateIngredients(weeklyList.items);
 
       // Salvar a lista semanal
       await ShoppingListService.saveWeeklyList(weeklyList);

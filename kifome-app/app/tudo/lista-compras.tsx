@@ -76,12 +76,14 @@ export default function ListaCompras() {
                   ]}>
                     {item.name}
                   </Text>
-                  <Text style={[
-                    styles.itemQuantity,
-                    item.checked && styles.checkedText
-                  ]}>
-                    {item.quantity}
-                  </Text>
+                  {item.quantity && (
+                    <Text style={[
+                      styles.itemQuantity,
+                      item.checked && styles.checkedText
+                    ]}>
+                      {item.quantity}
+                    </Text>
+                  )}
                   {item.recipeTitle && (
                     <View style={styles.recipeContainer}>
                       <Icon name="pot-steam" size={14} color="#666" />

@@ -27,7 +27,7 @@ export default function TudoLayout() {
       <Stack.Screen
         name="lista-temporaria"
         options={{
-          title: 'Lista de Compras',
+          title: 'Visualizar Ingredientes',
           headerTintColor: '#f4511e',
         }}
       />

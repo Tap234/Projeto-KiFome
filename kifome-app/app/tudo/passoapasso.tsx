@@ -2,7 +2,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import ShoppingListService from '../../services/ShoppingListService';
-import { Recipe, ShoppingList } from '../../types/user';
+import { Recipe } from '../../types/user';
 
 // Define the type for a single step
 interface Step {
@@ -143,21 +143,19 @@ export default function PassoAPasso() {
         recipeTitle: recipe.titulo
       }));
 
-      // Cria a nova lista de compras
-      const newList: ShoppingList = {
-        id: ShoppingListService.generateListId(),
-        title: `Lista para ${recipe.titulo}`,
-        type: 'single',
-        items,
-        createdAt: Date.now()
-      };
-
-      // Salva a lista
-      await ShoppingListService.saveSingleList(newList);
-      Alert.alert('Sucesso', 'Lista de compras gerada com sucesso!');
+      // Adiciona os itens à lista semanal
+      await ShoppingListService.addItemsToWeeklyList(items);
+      Alert.alert(
+        'Sucesso',
+        'Ingredientes adicionados à lista de compras semanal!',
+        [
+          { text: 'OK' },
+          { text: 'Ver Lista', onPress: () => router.push('/tudo/lista-compras') }
+        ]
+      );
     } catch (error) {
       console.error('Erro ao gerar lista de compras:', error);
-      Alert.alert('Erro', 'Não foi possível gerar a lista de compras.');
+      Alert.alert('Erro', 'Não foi possível adicionar os ingredientes à lista de compras.');
     }
   };
 

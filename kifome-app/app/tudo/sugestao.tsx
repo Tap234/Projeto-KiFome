@@ -1,21 +1,20 @@
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Modal,
-  Platform,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    Modal,
+    Platform,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import { generateRecipe } from '../../config/gemini';
 import QuickSuggestionHistoryService, { QuickSuggestion } from '../../services/QuickSuggestionHistoryService';
 import QuickSuggestionHistory from '../components/QuickSuggestionHistory';
-import TemporaryShoppingList from '../components/TemporaryShoppingList';
 
 type Receita = {
   id: string;
@@ -34,7 +33,6 @@ export default function Sugestao() {
   const [receitas, setReceitas] = useState<Receita[]>([]);
   const [loading, setLoading] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
-  const [showShoppingList, setShowShoppingList] = useState(false);
   const [history, setHistory] = useState<QuickSuggestion[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
 
@@ -261,23 +259,6 @@ export default function Sugestao() {
                 onClose={() => setShowHistory(false)}
               />
             )}
-          </View>
-        </View>
-      </Modal>
-
-      {/* Modal da Lista de Compras */}
-      <Modal
-        visible={showShoppingList}
-        animationType="slide"
-        transparent={true}
-        onRequestClose={() => setShowShoppingList(false)}
-      >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <TemporaryShoppingList
-              ingredients={listaIngredientes}
-              onClose={() => setShowShoppingList(false)}
-            />
           </View>
         </View>
       </Modal>

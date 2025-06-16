@@ -1,3 +1,4 @@
+import Icon from '@expo/vector-icons/MaterialCommunityIcons';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
@@ -9,36 +10,30 @@ import {
 } from 'react-native';
 import ShoppingListService from '../../services/ShoppingListService';
 import { ShoppingList } from '../../types/user';
-import ShoppingListComponent from '../components/ShoppingListComponent';
 
 export default function ListaCompras() {
   const router = useRouter();
   const [weeklyList, setWeeklyList] = useState<ShoppingList | null>(null);
-  const [singleLists, setSingleLists] = useState<ShoppingList[]>([]);
-  const [activeList, setActiveList] = useState<'weekly' | 'single'>('weekly');
 
-  // Carrega as listas ao iniciar
+  // Carrega a lista ao iniciar
   useEffect(() => {
-    loadLists();
+    loadList();
   }, []);
 
-  // Carrega todas as listas
-  const loadLists = async () => {
+  // Carrega a lista semanal
+  const loadList = async () => {
     try {
       const weekly = await ShoppingListService.getWeeklyList();
-      const single = await ShoppingListService.getAllSingleLists();
-      
       setWeeklyList(weekly);
-      setSingleLists(single);
     } catch (error) {
-      console.error('Erro ao carregar listas:', error);
+      console.error('Erro ao carregar lista:', error);
     }
   };
 
   // Alterna o estado de um item
-  const handleItemToggle = async (listType: 'weekly' | 'single', listId: string, itemId: string) => {
+  const handleItemToggle = async (itemId: string) => {
     try {
-      if (listType === 'weekly' && weeklyList) {
+      if (weeklyList) {
         const updatedList = {
           ...weeklyList,
           items: weeklyList.items.map(item =>
@@ -47,97 +42,60 @@ export default function ListaCompras() {
         };
         await ShoppingListService.saveWeeklyList(updatedList);
         setWeeklyList(updatedList);
-      } else {
-        const targetList = singleLists.find(list => list.id === listId);
-        if (targetList) {
-          const updatedList = {
-            ...targetList,
-            items: targetList.items.map(item =>
-              item.id === itemId ? { ...item, checked: !item.checked } : item
-            ),
-          };
-          await ShoppingListService.saveSingleList(updatedList);
-          setSingleLists(prev =>
-            prev.map(list => list.id === listId ? updatedList : list)
-          );
-        }
       }
     } catch (error) {
       console.error('Erro ao atualizar item:', error);
     }
   };
 
-  // Remove uma lista avulsa
-  const handleDeleteList = async (listId: string) => {
-    try {
-      await ShoppingListService.deleteSingleList(listId);
-      setSingleLists(prev => prev.filter(list => list.id !== listId));
-    } catch (error) {
-      console.error('Erro ao deletar lista:', error);
-    }
-  };
-
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Listas de Compras</Text>
-        <View style={styles.tabs}>
-          <TouchableOpacity
-            style={[styles.tab, activeList === 'weekly' && styles.activeTab]}
-            onPress={() => setActiveList('weekly')}
-          >
-            <Text style={[
-              styles.tabText,
-              activeList === 'weekly' && styles.activeTabText
-            ]}>
-              Lista Semanal
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tab, activeList === 'single' && styles.activeTab]}
-            onPress={() => setActiveList('single')}
-          >
-            <Text style={[
-              styles.tabText,
-              activeList === 'single' && styles.activeTabText
-            ]}>
-              Listas Avulsas
-            </Text>
-          </TouchableOpacity>
-        </View>
+        <Text style={styles.title}>Lista de Compras Semanal</Text>
       </View>
 
-      {activeList === 'weekly' ? (
-        weeklyList ? (
-          <ShoppingListComponent
-            list={weeklyList}
-            onItemToggle={(itemId) => handleItemToggle('weekly', weeklyList.id, itemId)}
-          />
-        ) : (
+      <ScrollView style={styles.scrollView}>
+        {!weeklyList || weeklyList.items.length === 0 ? (
           <Text style={styles.emptyText}>
-            Nenhuma lista semanal disponível.{'\n'}
+            Nenhum item na lista semanal.{'\n'}
             Gere um planejamento semanal primeiro!
           </Text>
-        )
-      ) : (
-        <ScrollView>
-          {singleLists.length > 0 ? (
-            singleLists.map(list => (
-              <ShoppingListComponent
-                key={list.id}
-                list={list}
-                onItemToggle={(itemId) => handleItemToggle('single', list.id, itemId)}
-                onDeleteList={() => handleDeleteList(list.id)}
-              />
-            ))
-          ) : (
-            <Text style={styles.emptyText}>
-              Nenhuma lista avulsa disponível.{'\n'}
-              Gere uma lista a partir de uma receita!
-            </Text>
-          )}
-        </ScrollView>
-      )}
+        ) : (
+          <View style={styles.itemsContainer}>
+            {weeklyList.items.map((item) => (
+              <TouchableOpacity
+                key={item.id}
+                style={styles.itemRow}
+                onPress={() => handleItemToggle(item.id)}
+              >
+                <View style={[styles.checkbox, item.checked && styles.checked]} />
+                <View style={styles.itemInfo}>
+                  <Text style={[
+                    styles.itemName,
+                    item.checked && styles.checkedText
+                  ]}>
+                    {item.name}
+                  </Text>
+                  <Text style={[
+                    styles.itemQuantity,
+                    item.checked && styles.checkedText
+                  ]}>
+                    {item.quantity}
+                  </Text>
+                  {item.recipeTitle && (
+                    <View style={styles.recipeContainer}>
+                      <Icon name="pot-steam" size={14} color="#666" />
+                      <Text style={styles.recipeTitle}>
+                        {item.recipeTitle}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+      </ScrollView>
     </View>
   );
 }
@@ -159,27 +117,8 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     textAlign: 'center',
   },
-  tabs: {
-    flexDirection: 'row',
-    marginTop: 8,
-  },
-  tab: {
+  scrollView: {
     flex: 1,
-    paddingVertical: 12,
-    alignItems: 'center',
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
-  },
-  activeTab: {
-    borderBottomColor: '#f4511e',
-  },
-  tabText: {
-    fontSize: 16,
-    color: '#666',
-  },
-  activeTabText: {
-    color: '#f4511e',
-    fontWeight: 'bold',
   },
   emptyText: {
     textAlign: 'center',
@@ -187,5 +126,55 @@ const styles = StyleSheet.create({
     color: '#666',
     fontStyle: 'italic',
     lineHeight: 24,
+  },
+  itemsContainer: {
+    padding: 16,
+  },
+  itemRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  checkbox: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#f4511e',
+    marginRight: 12,
+    marginTop: 2,
+  },
+  checked: {
+    backgroundColor: '#f4511e',
+  },
+  itemInfo: {
+    flex: 1,
+  },
+  itemName: {
+    fontSize: 16,
+    color: '#333',
+    marginBottom: 4,
+  },
+  itemQuantity: {
+    fontSize: 14,
+    color: '#666',
+    marginBottom: 4,
+  },
+  checkedText: {
+    textDecorationLine: 'line-through',
+    color: '#999',
+  },
+  recipeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  recipeTitle: {
+    fontSize: 12,
+    color: '#666',
+    marginLeft: 4,
+    fontStyle: 'italic',
   },
 });

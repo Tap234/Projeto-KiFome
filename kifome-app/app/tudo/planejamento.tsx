@@ -105,10 +105,9 @@ export default function Planejamento() {
     setLoading(true);
     try {
       // Lista de restrições para o prompt
-      const restrictions = [];
-      if (preferences.dietaryRestrictions.isVegetarian) restrictions.push('vegetariano');
-      if (preferences.dietaryRestrictions.isGlutenFree) restrictions.push('sem glúten');
-      if (preferences.dietaryRestrictions.isLactoseFree) restrictions.push('sem lactose');
+      const restrictions = preferences?.dietaryRestrictions
+        ? preferences.dietaryRestrictions.split(',').map(r => r.trim()).filter(Boolean)
+        : [];
 
       const plan = await geminiGenerateWeeklyPlan(
         preferences.mealPreferences.includeLunch,

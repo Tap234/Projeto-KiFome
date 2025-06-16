@@ -4,11 +4,7 @@ export interface UserPreferences {
     includeDinner: boolean;
     peopleCount: number;
   };
-  dietaryRestrictions: {
-    isVegetarian: boolean;
-    isGlutenFree: boolean;
-    isLactoseFree: boolean;
-  };
+  dietaryRestrictions: string;
   averagePreparationTime: number; // in minutes
   darkMode: boolean;
 }

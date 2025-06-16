@@ -16,18 +16,15 @@ export default function Perfil() {
       includeDinner: true,
       peopleCount: 1,
     },
-    dietaryRestrictions: {
-      isVegetarian: false,
-      isGlutenFree: false,
-      isLactoseFree: false,
-    },
+    dietaryRestrictions: '',
     averagePreparationTime: 30,
     darkMode: false,
   });
 
-  // Estados locais para os campos numéricos
+  // Estados locais para os campos
   const [peopleCountText, setPeopleCountText] = useState(preferences.mealPreferences.peopleCount.toString());
   const [prepTimeText, setPrepTimeText] = useState(preferences.averagePreparationTime.toString());
+  const [novaRestricao, setNovaRestricao] = useState('');
 
   useEffect(() => {
     loadPreferences();
@@ -38,6 +35,10 @@ export default function Perfil() {
       const savedPrefs = await AsyncStorage.getItem(STORAGE_KEY);
       if (savedPrefs) {
         const prefs = JSON.parse(savedPrefs);
+        // Garante que dietaryRestrictions seja sempre uma string
+        if (typeof prefs.dietaryRestrictions !== 'string') {
+          prefs.dietaryRestrictions = '';
+        }
         setPreferences(prefs);
         setPeopleCountText(prefs.mealPreferences.peopleCount.toString());
         setPrepTimeText(prefs.averagePreparationTime.toString());
@@ -88,6 +89,38 @@ export default function Perfil() {
         averagePreparationTime: time,
       });
     }
+  };
+
+  const adicionarRestricao = () => {
+    if (novaRestricao.trim()) {
+      const restricaoFormatada = novaRestricao.trim();
+      const restricoesAtuais = preferences?.dietaryRestrictions
+        ? preferences.dietaryRestrictions.split(',').map((r: string) => r.trim()).filter(Boolean)
+        : [];
+      
+      const novasRestricoes = [...restricoesAtuais, restricaoFormatada].join(', ');
+      
+      savePreferences({
+        ...preferences,
+        dietaryRestrictions: novasRestricoes
+      });
+      setNovaRestricao('');
+    }
+  };
+
+  const removerRestricao = (restricaoParaRemover: string) => {
+    if (!preferences?.dietaryRestrictions) return;
+
+    const restricoesAtuais = preferences.dietaryRestrictions
+      .split(',')
+      .map((r: string) => r.trim())
+      .filter((r: string) => r !== restricaoParaRemover)
+      .join(', ');
+
+    savePreferences({
+      ...preferences,
+      dietaryRestrictions: restricoesAtuais
+    });
   };
 
   const handleLogout = async () => {
@@ -209,53 +242,45 @@ export default function Perfil() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Restrições Alimentares</Text>
           
-          <View style={styles.preferenceItem}>
-            <Text style={styles.preferenceText}>Vegetariano</Text>
-            <Switch
-              value={preferences.dietaryRestrictions.isVegetarian}
-              onValueChange={(value) => savePreferences({
-                ...preferences,
-                dietaryRestrictions: {
-                  ...preferences.dietaryRestrictions,
-                  isVegetarian: value,
-                }
-              })}
-              trackColor={{ false: '#767577', true: '#f4511e' }}
-              thumbColor={preferences.dietaryRestrictions.isVegetarian ? '#fff' : '#f4f3f4'}
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={styles.restrictionInput}
+              value={novaRestricao}
+              onChangeText={setNovaRestricao}
+              placeholder="Ex: Sem frutos do mar, alergia a amendoim"
+              placeholderTextColor="#999"
+              onSubmitEditing={adicionarRestricao}
             />
+            <TouchableOpacity
+              style={styles.addButton}
+              onPress={adicionarRestricao}
+            >
+              <Text style={styles.addButtonText}>+</Text>
+            </TouchableOpacity>
           </View>
 
-          <View style={styles.preferenceItem}>
-            <Text style={styles.preferenceText}>Sem Glúten</Text>
-            <Switch
-              value={preferences.dietaryRestrictions.isGlutenFree}
-              onValueChange={(value) => savePreferences({
-                ...preferences,
-                dietaryRestrictions: {
-                  ...preferences.dietaryRestrictions,
-                  isGlutenFree: value,
-                }
+          {preferences?.dietaryRestrictions ? (
+            <View>
+              {preferences.dietaryRestrictions.split(',').map((restricao: string, index: number) => {
+                const restricaoTrim = restricao.trim();
+                if (!restricaoTrim) return null;
+                
+                return (
+                  <View key={index} style={styles.restrictionItem}>
+                    <Text style={styles.restrictionText}>• {restricaoTrim}</Text>
+                    <TouchableOpacity
+                      onPress={() => removerRestricao(restricaoTrim)}
+                      style={styles.removeButton}
+                    >
+                      <Text style={styles.removeButtonText}>×</Text>
+                    </TouchableOpacity>
+                  </View>
+                );
               })}
-              trackColor={{ false: '#767577', true: '#f4511e' }}
-              thumbColor={preferences.dietaryRestrictions.isGlutenFree ? '#fff' : '#f4f3f4'}
-            />
-          </View>
-
-          <View style={styles.preferenceItem}>
-            <Text style={styles.preferenceText}>Sem Lactose</Text>
-            <Switch
-              value={preferences.dietaryRestrictions.isLactoseFree}
-              onValueChange={(value) => savePreferences({
-                ...preferences,
-                dietaryRestrictions: {
-                  ...preferences.dietaryRestrictions,
-                  isLactoseFree: value,
-                }
-              })}
-              trackColor={{ false: '#767577', true: '#f4511e' }}
-              thumbColor={preferences.dietaryRestrictions.isLactoseFree ? '#fff' : '#f4f3f4'}
-            />
-          </View>
+            </View>
+          ) : (
+            <Text style={styles.emptyText}>Nenhuma restrição informada</Text>
+          )}
         </View>
 
         <View style={styles.section}>
@@ -352,6 +377,61 @@ const styles = StyleSheet.create({
     width: 60,
     textAlign: 'center',
     color: '#666',
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    marginBottom: 15,
+  },
+  restrictionInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 10,
+    padding: 12,
+    marginRight: 10,
+    fontSize: 16,
+    color: '#666',
+  },
+  addButton: {
+    backgroundColor: '#f4511e',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  addButtonText: {
+    color: '#fff',
+    fontSize: 24,
+    fontWeight: 'bold',
+  },
+  restrictionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 8,
+  },
+  restrictionText: {
+    flex: 1,
+    fontSize: 16,
+    color: '#333',
+  },
+  removeButton: {
+    padding: 5,
+  },
+  removeButtonText: {
+    color: '#f4511e',
+    fontSize: 24,
+    fontWeight: 'bold',
+  },
+  emptyText: {
+    fontSize: 16,
+    color: '#666',
+    fontStyle: 'italic',
+    textAlign: 'center',
+    marginTop: 10,
   },
   button: {
     backgroundColor: '#f4511e',
